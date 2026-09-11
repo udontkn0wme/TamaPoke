@@ -97,6 +97,8 @@
        the port at a time).</p>
     <div class="row">
       <button id="connect">🔌 Connect board</button>
+      <button id="setclock" disabled title="Sets the board's clock (date AND time) from this PC. The settings screen on the device only sets hour and minute; the Halloween event needs the date.">🕒 Uhr vom PC stellen</button>
+      <button id="hoopa" disabled title="Fires the Halloween unlock now instead of on Oct 31 (console command HOOPA).">🎃 Hoopa jetzt freischalten (Test)</button>
       <button id="auto" data-region="kanto" disabled>⬇️ Kanto sprites (~40 MB)</button>
       <button id="autoj" data-region="johto" disabled>⬇️ Johto (~27 MB)</button>
       <button id="autoh" data-region="hoenn" disabled>⬇️ Hoenn (~38 MB)</button>
@@ -210,9 +212,28 @@ document.getElementById('connect').onclick = async () => {
     log('Connected. Press "Load sprites".');
     for (const b of document.querySelectorAll('[data-region]')) b.disabled = false;
     document.getElementById('files').disabled = false;
+    document.getElementById('setclock').disabled = false;
+    document.getElementById('hoopa').disabled = false;
     probeRegions();      // grey out any region that has no bundle to download
     document.getElementById('connect').disabled = true;
   } catch (e) { log('Could not connect: ' + e.message); }
+};
+
+// Kinder-Edition: the board keeps LOCAL time in its RTC (the firmware reads the
+// epoch as if it were UTC), so the PC's local time is sent as such. The
+// on-device settings screen only sets hour and minute; this is the one place
+// the DATE gets set, and the Halloween event depends on it.
+document.getElementById('setclock').onclick = async () => {
+  const d = new Date();
+  const epoch = Math.floor(d.getTime() / 1000) - d.getTimezoneOffset() * 60;
+  await writer.write(enc.encode(`RTCSET ${epoch}\n`));
+  const ok = await waitFor('DONE');
+  log(ok ? `Uhr gestellt: ${d.toLocaleString()}` : 'Uhr: keine Antwort vom Board (laeuft die Firmware?)');
+};
+document.getElementById('hoopa').onclick = async () => {
+  await writer.write(enc.encode('HOOPA\n'));
+  const l = await readLine(3000);
+  log(l ? 'Board: ' + l : 'Hoopa: keine Antwort vom Board');
 };
 
 // One bundle per region. Kanto alone is ~40 MB and all three would be ~100 MB,

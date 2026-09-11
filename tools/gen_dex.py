@@ -99,7 +99,18 @@ def main():
     rarities = []
     out.append("static const DexEntry DEX_TBL[DEX_COUNT + 1] = {\n")
     out.append('  { "?", 0, 0, 0, 0x2946, 50, 50, 50, 50, 50, 50, 0 },  // 0: sin usar\n')
+    # Kinder-Edition: German display names from tools/names_de.txt when present
+    # (species names are shown as-is in every UI language). Delete the file to
+    # get the English names back.
+    _de_path = os.path.join(os.path.dirname(__file__), 'names_de.txt')
+    NAMES_DE = {}
+    if os.path.exists(_de_path):
+        for _l in open(_de_path, encoding='utf-8'):
+            if _l.strip() and not _l.startswith('#'):
+                _n, _v = _l.rstrip('\n').split('\t', 1)
+                NAMES_DE[int(_n)] = _v
     for num, slug, display, typ, evo, lvl in DEX:
+        display = NAMES_DE.get(num, display)
         acc = rgb565(TYPE_ACCENTS[typ])
         if num in evolved:
             rar = 'R_EVO'
